@@ -41,8 +41,10 @@
         <activity
             android:name=".ui.MainActivity"
             android:windowSoftInputMode="adjustPan" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBRmISXQubdAS6v5zSev2hJE4agcAS9cSw" />
+        <service android:name=".service.SendLocationService" />
     </application>
 </manifest>

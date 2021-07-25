@@ -1,6 +1,7 @@
 package com.example.mysocialmediaapp.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +16,7 @@ import com.example.mysocialmediaapp.adapter.MemeRecyclerAdapter
 import com.example.mysocialmediaapp.models.ChatMessage
 import com.example.mysocialmediaapp.models.Meme
 import com.example.mysocialmediaapp.models.UserLocation
+import com.example.mysocialmediaapp.service.SendLocationService
 import com.example.mysocialmediaapp.util.SharedPreferences
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -48,6 +50,10 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
 
         fusedLocation = LocationServices.getFusedLocationProviderClient(this)
         getLastKnownLocation()
+
+        val intent = Intent(this, SendLocationService::class.java)
+        startService(intent)
+
     }
 
     private fun getLastKnownLocation() {
@@ -68,7 +74,10 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
                 val userLocation =
                     UserLocation(geoPoint, null, SharedPreferences.getStoredUserDetails()!!)
                 SharedPreferences.addUserLocationToServer(userLocation)
-                Log.i(TAG, "getLastKnownLocation: location : ${location.latitude} ${location.longitude}")
+                Log.i(
+                    TAG,
+                    "getLastKnownLocation: location : ${location.latitude} ${location.longitude}"
+                )
             }
         }
     }
