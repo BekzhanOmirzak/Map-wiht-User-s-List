@@ -48,6 +48,9 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
 
         fusedLocation = LocationServices.getFusedLocationProviderClient(this)
         getLastKnownLocation()
+
+
+
     }
 
     private fun getLastKnownLocation() {
