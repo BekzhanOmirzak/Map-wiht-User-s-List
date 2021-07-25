@@ -50,7 +50,6 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
         getLastKnownLocation()
 
 
-
     }
 
     private fun getLastKnownLocation() {
