@@ -1,0 +1,13 @@
+package com.example.mysocialmediaapp.adapter
+
+import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.example.mysocialmediaapp.R
+
+class ProfileMemeViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+
+    val img_meme = v.findViewById<ImageView>(R.id.img_meme)
+
+}
