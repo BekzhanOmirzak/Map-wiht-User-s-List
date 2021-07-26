@@ -3,9 +3,11 @@ package com.example.mysocialmediaapp.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.navigation.NavController
@@ -16,7 +18,7 @@ import com.example.mysocialmediaapp.adapter.MemeRecyclerAdapter
 import com.example.mysocialmediaapp.models.ChatMessage
 import com.example.mysocialmediaapp.models.Meme
 import com.example.mysocialmediaapp.models.UserLocation
-import com.example.mysocialmediaapp.service.SendLocationService
+import com.example.mysocialmediaapp.service.LocationService
 import com.example.mysocialmediaapp.util.SharedPreferences
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -39,6 +41,7 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
     val memes_col = collections.document(FirebaseAuth.getInstance().uid!!).collection("memes")
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -46,14 +49,21 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
         nav_controller =
             (supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment).navController
 
+        fusedLocation = LocationServices.getFusedLocationProviderClient(this)
         bottom_nav_view.setupWithNavController(nav_controller)
 
-        fusedLocation = LocationServices.getFusedLocationProviderClient(this)
         getLastKnownLocation()
 
-        val intent = Intent(this, SendLocationService::class.java)
-        startService(intent)
+    }
 
+    private fun startLocationService() {
+
+        val intent = Intent(this, LocationService::class.java)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            startForegroundService(intent)
+        else
+            startService(intent)
     }
 
     private fun getLastKnownLocation() {
@@ -74,10 +84,8 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
                 val userLocation =
                     UserLocation(geoPoint, null, SharedPreferences.getStoredUserDetails()!!)
                 SharedPreferences.addUserLocationToServer(userLocation)
-                Log.i(
-                    TAG,
-                    "getLastKnownLocation: location : ${location.latitude} ${location.longitude}"
-                )
+                startLocationService()
+                Log.i(TAG, "getLastKnownLocation: location : ${location.latitude} ${location.longitude}")
             }
         }
     }

@@ -142,5 +142,17 @@ object SharedPreferences {
         firestore.collection("user_locations").document(userLocation.user.uid).set(userLocation)
     }
 
+    fun getUserLocations(myCallBack: (List<UserLocation>) -> Unit) {
+        val list = mutableListOf<UserLocation>()
+        FirebaseFirestore.getInstance().collection("user_locations").get().addOnCompleteListener {
+            for (k in it.result) {
+                if (!k.toObject(UserLocation::class.java).user.login.equals("")) {
+                    list.add(k.toObject(UserLocation::class.java))
+                }
+            }
+            myCallBack(list)
+        }
+    }
+
 
 }
