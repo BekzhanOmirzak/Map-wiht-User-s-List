@@ -80,12 +80,14 @@ class MainActivity : AppCompatActivity(), MemeRecyclerAdapter.AddMeme,
         fusedLocation.lastLocation.addOnCompleteListener {
             if (it.isSuccessful) {
                 val location = it.result
-                val geoPoint = GeoPoint(location.latitude, location.longitude)
-                val userLocation =
-                    UserLocation(geoPoint, null, SharedPreferences.getStoredUserDetails()!!)
-                SharedPreferences.addUserLocationToServer(userLocation)
-                startLocationService()
-                Log.i(TAG, "getLastKnownLocation: location : ${location.latitude} ${location.longitude}")
+                if (location != null) {
+                    val geoPoint = GeoPoint(location.latitude, location.longitude)
+                    val userLocation =
+                        UserLocation(geoPoint, null, SharedPreferences.getStoredUserDetails()!!)
+                    SharedPreferences.addUserLocationToServer(userLocation)
+                    startLocationService()
+                    Log.i(TAG, "getLastKnownLocation: location : ${location.latitude} ${location.longitude}")
+                }
             }
         }
     }

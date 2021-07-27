@@ -1,15 +1,15 @@
 package com.example.mysocialmediaapp.ui
 
 import android.Manifest
+import android.animation.ObjectAnimator
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.ListView
+import android.widget.*
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import com.example.mysocialmediaapp.R
@@ -17,6 +17,7 @@ import com.example.mysocialmediaapp.models.ClusterMarker
 import com.example.mysocialmediaapp.models.UserLocation
 import com.example.mysocialmediaapp.util.MyClusterManagerRenderer
 import com.example.mysocialmediaapp.util.SharedPreferences
+import com.example.mysocialmediaapp.util.ViewWeightAnimationWrapper
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
@@ -24,6 +25,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.clustering.ClusterManager
 
 
@@ -37,10 +39,16 @@ class ListMapFragment : Fragment(), OnMapReadyCallback {
     private var clusterManager: ClusterManager<ClusterMarker>? = null
     private var myClusterManagerRendered: MyClusterManagerRenderer? = null
     private var mClustersMarkers = mutableListOf<ClusterMarker>()
-
+    private val mHandler = Handler()
+    private var mRunnable: Runnable? = null
+    private val LOCATION_UPDATE_INTERVAL = 3000
+    private lateinit var relativeLayout: RelativeLayout
 
     companion object {
         private const val TAG = "ListMapFragment"
+        private const val MAP_LAYOUT_STATE_CONTRACTED = 0
+        private const val MAP_LAYOUT_STATE_EXPANDED = 1
+        private var mMapLayoutState = 0
     }
 
 
@@ -52,6 +60,16 @@ class ListMapFragment : Fragment(), OnMapReadyCallback {
         val view = inflater.inflate(R.layout.list_map_fragment, container, false)
         list_view = view.findViewById(R.id.list_view)
         mMapView = view.findViewById(R.id.map_view)
+        relativeLayout = view.findViewById(R.id.rel_layout)
+        view.findViewById<ImageButton>(R.id.btn_shape).setOnClickListener {
+            if (mMapLayoutState == MAP_LAYOUT_STATE_CONTRACTED) {
+                mMapLayoutState = MAP_LAYOUT_STATE_EXPANDED
+                expandMapAnimation()
+            } else if (mMapLayoutState == MAP_LAYOUT_STATE_EXPANDED) {
+                mMapLayoutState = MAP_LAYOUT_STATE_CONTRACTED
+                contractMapAnimation()
+            }
+        }
         mMapView.onCreate(savedInstanceState)
         mMapView.getMapAsync(this)
         mMapView.onResume()
@@ -67,6 +85,46 @@ class ListMapFragment : Fragment(), OnMapReadyCallback {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        startUserLocationRunnable()
+
+
+    }
+
+    private fun startUserLocationRunnable() {
+        mHandler.postDelayed(Runnable {
+            retrieveUserLocations()
+            user_list_location.clear()
+            SharedPreferences.getUserLocations {
+                user_list_location.addAll(it)
+            }
+            mHandler.postDelayed(mRunnable!!, LOCATION_UPDATE_INTERVAL.toLong())
+        }.also { mRunnable = it }, LOCATION_UPDATE_INTERVAL.toLong())
+    }
+
+    private fun retrieveUserLocations() {
+
+        try {
+            for (k in 0 until mClustersMarkers.size) {
+                FirebaseFirestore.getInstance().collection("user_locations")
+                    .document(mClustersMarkers[k].user.uid).get().addOnCompleteListener {
+                        if (it.isSuccessful) {
+                            val user_location = it.result.toObject(UserLocation::class.java)!!
+                            for (d in 0 until mClustersMarkers.size) {
+                                if (mClustersMarkers.get(d).user.uid == user_location.user.uid) {
+                                    val latLng = LatLng(
+                                        user_location.geoPoint.latitude,
+                                        user_location.geoPoint.longitude
+                                    )
+                                    mClustersMarkers.get(d).position = latLng
+                                    myClusterManagerRendered?.setUpDateMarker(mClustersMarkers.get(d))
+                                }
+                            }
+                        }
+                    }
+            }
+        } catch (ex: Exception) {
+
+        }
 
     }
 
@@ -83,7 +141,9 @@ class ListMapFragment : Fragment(), OnMapReadyCallback {
             override fun onItemClick(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long
             ) {
-
+                if (user_list_location.size != 0) {
+                    updateCameraView(user_list_location[position])
+                }
             }
         })
 
@@ -110,21 +170,12 @@ class ListMapFragment : Fragment(), OnMapReadyCallback {
             LatLng(topBoundary, rightBoundary)
         )
         googleMap!!.moveCamera(CameraUpdateFactory.newLatLngBounds(mMapBoundry, 0))
-        googleMap!!.addMarker(
-            MarkerOptions().position(
-                LatLng(
-                    user.geoPoint.latitude,
-                    user.geoPoint.longitude
-                )
-            ).title("My Location")
-        )
-
-
     }
 
     override fun onResume() {
         super.onResume()
         mMapView.onResume()
+        startUserLocationRunnable()
     }
 
     override fun onStart() {
@@ -208,7 +259,41 @@ class ListMapFragment : Fragment(), OnMapReadyCallback {
             clusterManager!!.cluster()
             setUpCurrentUserLocations()
         }
+    }
 
+
+    private fun expandMapAnimation() {
+        val mapAnimationWrapper = ViewWeightAnimationWrapper(relativeLayout)
+        val mapAnimation = ObjectAnimator.ofFloat(
+            mapAnimationWrapper,
+            "weight", 50f, 100f
+        )
+        mapAnimation.duration = 800
+        val recyclerAnimationWrapper = ViewWeightAnimationWrapper(list_view)
+        val recyclerAnimation = ObjectAnimator.ofFloat(
+            recyclerAnimationWrapper,
+            "weight", 50f, 0f
+        )
+        recyclerAnimation.duration = 800
+        recyclerAnimation.start()
+        mapAnimation.start()
+    }
+
+    private fun contractMapAnimation() {
+        val mapAnimationWrapper = ViewWeightAnimationWrapper(relativeLayout)
+        val mapAnimation = ObjectAnimator.ofFloat(
+            mapAnimationWrapper,
+            "weight", 100f, 50f
+        )
+        mapAnimation.duration = 800
+        val recyclerAnimationWrapper = ViewWeightAnimationWrapper(list_view)
+        val recyclerAnimation = ObjectAnimator.ofFloat(
+            recyclerAnimationWrapper,
+            "weight", 0f, 50f
+        )
+        recyclerAnimation.duration = 800
+        recyclerAnimation.start()
+        mapAnimation.start()
     }
 
 

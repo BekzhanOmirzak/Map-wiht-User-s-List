@@ -2,17 +2,35 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:weightSum="100">
 
     <ListView
         android:id="@+id/list_view"
         android:layout_width="match_parent"
-        android:layout_height="320dp" />
+        android:layout_height="0dp"
+        android:layout_weight="50" />
 
-    <com.google.android.gms.maps.MapView
-        android:id="@+id/map_view"
+    <RelativeLayout
+        android:id="@+id/rel_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_weight="50">
 
+        <com.google.android.gms.maps.MapView
+            android:id="@+id/map_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ImageButton
+            android:id="@+id/btn_shape"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_margin="10dp"
+            android:src="@drawable/ic_add" />
+
+    </RelativeLayout>
 
 </LinearLayout>

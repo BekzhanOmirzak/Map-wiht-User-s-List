@@ -41,5 +41,12 @@ class MyClusterManagerRenderer(
         return false
     }
 
+    fun setUpDateMarker(clusterMarker: ClusterMarker) {
+        val marker = getMarker(clusterMarker)
+        if (marker != null) {
+            marker.position = clusterMarker.position
+        }
+    }
+
 
 }
